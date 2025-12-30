@@ -1,42 +1,78 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-// Supabase client import (Ensure path is correct)
 const supabase = require('./supabaseClient');
+
+// 🔥 SOCKET.IO IMPORTS
+const http = require('http');
+const { Server } = require('socket.io');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
 
-// 1. GET ALL COURSES (DSA, System Design, etc.)
+// --- 🔥 SOCKET.IO SERVER SETUP ---
+// Express app ko HTTP Server me wrap kiya taaki Socket chal sake
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    // Production me '*' hatakar apni Vercel link dalna better hoga security ke liye
+    origin: "*", 
+    methods: ["GET", "POST"],
+  },
+});
+
+// --- 🔥 CHAT ROOM LOGIC ---
+io.on("connection", (socket) => {
+  console.log(`User Connected: ${socket.id}`);
+
+  // 1. Join Specific Course Room (e.g., "dsa_course_101")
+  socket.on("join_room", (room) => {
+    socket.join(room);
+    console.log(`User ${socket.id} joined room: ${room}`);
+  });
+
+  // 2. Send Message to Specific Room Only
+  socket.on("send_message", (data) => {
+    socket.to(data.room).emit("receive_message", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User Disconnected", socket.id);
+  });
+});
+
+// ==========================================
+//              API ROUTES
+// ==========================================
+
+// 1. GET ALL COURSES
 app.get('/courses', async (req, res) => {
   const { data, error } = await supabase
     .from('courses')
     .select('*')
     .order('id', { ascending: true });
 
-  if (error) {
-    return res.status(500).json({ error: error.message });
-  }
+  if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
-// 2. GET COURSE DETAILS + CHAPTERS (Jab user kisi course par click karega)
+// 2. GET COURSE DETAILS + CHAPTERS
 app.get('/courses/:id', async (req, res) => {
   const { id } = req.params;
 
-  // Course ki details lao
   const { data: course, error: courseError } = await supabase
     .from('courses')
     .select('*')
     .eq('id', id)
     .single();
 
-  // Us course ke Chapters lao
   const { data: chapters, error: chaptersError } = await supabase
     .from('chapters')
     .select('*')
@@ -46,12 +82,10 @@ app.get('/courses/:id', async (req, res) => {
   if (courseError || chaptersError) {
     return res.status(500).json({ error: 'Data fetch error' });
   }
-
-  // Course aur Chapters milakar bhej do
   res.json({ ...course, chapters });
 });
 
-// 3. GET VIDEOS OF A CHAPTER (Jab user kisi Pattern/Chapter par click karega)
+// 3. GET VIDEOS OF A CHAPTER
 app.get('/chapters/:id/videos', async (req, res) => {
   const { id } = req.params;
 
@@ -61,29 +95,16 @@ app.get('/chapters/:id/videos', async (req, res) => {
     .eq('chapter_id', id)
     .order('sequence_number', { ascending: true });
 
-  if (error) {
-    return res.status(500).json({ error: error.message });
-  }
+  if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
-
-// Test Route
-app.get('/', (req, res) => {
-  res.send('LMS Server is Updated & Running! 🚀');
-});
-
-app.listen(PORT, () => {
-  console.log(`Server chal raha hai port ${PORT} par`);
-});
-
-// ... baaki codes ke neeche ...
 
 // 4. MARK VIDEO COMPLETE & REWARD COINS
 app.post('/mark-complete', async (req, res) => {
   const { userId, videoId, chapterId } = req.body;
 
   try {
-    // A. Check karo pehle se dekha hai kya?
+    // A. Check if already watched
     const { data: existing } = await supabase
       .from('video_progress')
       .select('*')
@@ -95,27 +116,14 @@ app.post('/mark-complete', async (req, res) => {
       return res.json({ message: 'Already watched', coinsAdded: 0 });
     }
 
-    // B. Naya Record banao (Video Watched)
+    // B. Create New Record
     await supabase.from('video_progress').insert({ user_id: userId, video_id: videoId });
 
-    // C. User ko +1 Coin do (Video Reward)
+    // C. Reward +1 Coin
     let coinsReward = 1;
     let message = "Video Completed! +1 Coin";
 
-    // D. CHECK: Kya pura Chapter complete ho gaya? (+10 Coins Bonus)
-    // 1. Chapter ki total videos count karo
-    const { count: totalVideos } = await supabase
-      .from('videos')
-      .select('*', { count: 'exact', head: true })
-      .eq('chapter_id', chapterId);
-
-    // 2. User ne us chapter ki kitni videos dekhi hain count karo
-    // (Iske liye join query thodi complex hoti hai, hum simple logic use karenge)
-    // Hum frontend se refresh karwa lenge, abhi ke liye simple +1 rakhte hain.
-    // Bonus logic complex ho sakta hai, pehle basic +1 chalate hain.
-    
-    // E. Profile Update karo
-    // Pehle current coins lao
+    // D. Update Profile Coins
     const { data: profile } = await supabase.from('profiles').select('coins').eq('id', userId).single();
     const newBalance = (profile?.coins || 0) + coinsReward;
 
@@ -128,12 +136,12 @@ app.post('/mark-complete', async (req, res) => {
   }
 });
 
-// 5. GET USER PROFILE & DSA PROGRESS
+// 5. GET USER PROFILE & PROGRESS
 app.get('/user-profile/:userId', async (req, res) => {
   const { userId } = req.params;
 
   try {
-    // 1. User Profile (Name, Coins) lao
+    // 1. Get Profile
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
@@ -142,65 +150,32 @@ app.get('/user-profile/:userId', async (req, res) => {
 
     if (error) throw error;
 
-    // 2. PROGRESS CALCULATION FOR DSA (Course ID 1)
+    // 2. Calculate Progress (Simplified for Speed)
+    // Future: Add logic to filter by specific course IDs if needed
     
-    // A. Total Videos in DSA count karo
-    // (Pehle DSA ke saare Chapters dhoondo)
-    const { data: chapters } = await supabase
-      .from('chapters')
-      .select('id')
-      .eq('course_id', 1);
-    
-    const chapterIds = chapters.map(c => c.id);
-
-    // (Un chapters ki saari videos count karo)
-    const { count: totalVideos } = await supabase
-      .from('videos')
-      .select('*', { count: 'exact', head: true })
-      .in('chapter_id', chapterIds);
-
-    // B. User ne inme se kitni dekhi hain?
-    // (Video Progress table check karo)
-    const { count: completedVideos } = await supabase
-      .from('video_progress')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .in('video_id', (
-         // Humein un videos ki IDs chahiye jo DSA chapters mein hain
-         // Note: Supabase JS mein nested subquery tough hoti hai, 
-         // isliye hum 'video_progress' ko filter karenge client side ya raw query se.
-         // Simple Logic: Hum maan lete hain user ne jo bhi dekha hai wo count hoga
-         // (Production mein hum strict filtering karenge)
-         // Filhal ke liye simple count:
-         null // Placeholder
-      ));
-      
-    // Simplified Query for Speed:
-    // Hum check karenge user ne total kitni videos complete ki hain.
-    // (Agar future mein multiple courses honge to hum filter add karenge)
+    // Total videos in entire DB (or specific course)
+    // For now, let's assume DSA (course_id=1) logic or just global progress
     const { count: userCompleted } = await supabase
         .from('video_progress')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
 
-    // C. Percentage nikalo
-    const percentage = totalVideos === 0 ? 0 : Math.round((userCompleted / totalVideos) * 100);
+    // Placeholder total (You can make this dynamic later)
+    const totalEstimatedVideos = 100; 
+    const percentage = Math.min(100, Math.round((userCompleted / totalEstimatedVideos) * 100));
 
-    // 3. Data bhejo
     res.json({ ...profile, progress: percentage, completedCount: userCompleted });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-// ... Upar wale codes ...
 
 // 6. MARK ROADMAP VIEWED (Auto-Claim Coin)
 app.post('/mark-roadmap-viewed', async (req, res) => {
   const { userId, chapterId } = req.body;
 
   try {
-    // A. Check karo: Kya user ne ye roadmap pehle khola hai?
     const { data: existing } = await supabase
       .from('chapter_progress')
       .select('*')
@@ -208,14 +183,10 @@ app.post('/mark-roadmap-viewed', async (req, res) => {
       .eq('chapter_id', chapterId)
       .single();
 
-    if (existing) {
-      return res.json({ message: 'Already viewed', coinsAdded: 0 });
-    }
+    if (existing) return res.json({ message: 'Already viewed', coinsAdded: 0 });
 
-    // B. Naya Record banao (Roadmap Viewed)
     await supabase.from('chapter_progress').insert({ user_id: userId, chapter_id: chapterId });
 
-    // C. User ko +1 Coin do
     const { data: profile } = await supabase.from('profiles').select('coins').eq('id', userId).single();
     const newBalance = (profile?.coins || 0) + 1;
 
@@ -228,11 +199,11 @@ app.post('/mark-roadmap-viewed', async (req, res) => {
   }
 });
 
-// ... Upar ke codes ...
+// ==========================================
+//              ADMIN ROUTES
+// ==========================================
 
-// --- ADMIN APIs ---
-
-// 7. CREATE COURSE
+// 7. ADD COURSE
 app.post('/admin/add-course', async (req, res) => {
   const { title, description, image_url, playlist_url } = req.body;
   const { data, error } = await supabase
@@ -244,7 +215,7 @@ app.post('/admin/add-course', async (req, res) => {
   res.json(data[0]);
 });
 
-// 8. CREATE CHAPTER
+// 8. ADD CHAPTER
 app.post('/admin/add-chapter', async (req, res) => {
   const { course_id, title, description, roadmap_image_url } = req.body;
   const { data, error } = await supabase
@@ -256,7 +227,7 @@ app.post('/admin/add-chapter', async (req, res) => {
   res.json(data[0]);
 });
 
-// 9. CREATE VIDEO
+// 9. ADD VIDEO
 app.post('/admin/add-video', async (req, res) => {
   const { chapter_id, title, video_url, sequence_number } = req.body;
   const { data, error } = await supabase
@@ -266,4 +237,14 @@ app.post('/admin/add-video', async (req, res) => {
 
   if(error) return res.status(500).json({ error: error.message });
   res.json(data[0]);
+});
+
+// --- TEST ROUTE ---
+app.get('/', (req, res) => {
+  res.send('LMS Server is Updated & Running with Chat! 🚀');
+});
+
+// --- 🔥 FINAL LISTENER (Use 'server.listen', not 'app.listen') ---
+server.listen(PORT, () => {
+  console.log(`✅ Server running with Socket.io on port ${PORT}`);
 });

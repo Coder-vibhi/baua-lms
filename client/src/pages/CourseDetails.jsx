@@ -2,15 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
-import { PlayCircle, Youtube, Map, X, Coins, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Youtube, Map, X, Coins, ZoomIn, ZoomOut, MessageCircle, BookOpen } from 'lucide-react';
+import io from 'socket.io-client';
+import CourseChat from '../components/CourseChat'; // 🔥 New Import
+
+// 🔥 Socket Connect (Live Server)
+const socket = io.connect("https://baua-lms.onrender.com");
 
 const CourseDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   
+  // 🔥 New State: Tabs ('curriculum' or 'community')
+  const [activeTab, setActiveTab] = useState('curriculum');
+
   // Roadmap & Zoom State
   const [selectedRoadmap, setSelectedRoadmap] = useState(null);
   const [zoomScale, setZoomScale] = useState(1);
@@ -40,7 +49,6 @@ const CourseDetails = () => {
     } 
     // CASE 2: Other Courses (Roadmaps)
     else {
-        // Agar Roadmap Image hai tabhi open karein
         if(chapter.roadmap_image_url) {
             setSelectedRoadmap(chapter.roadmap_image_url);
             setZoomScale(1);
@@ -94,7 +102,7 @@ const CourseDetails = () => {
       )}
 
       {/* HEADER SECTION */}
-      <div className="bg-gray-900 text-white py-16 px-6 md:px-12">
+      <div className="bg-gray-900 text-white py-12 px-6 md:px-12 pb-24">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
                 <span className="bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -111,55 +119,100 @@ const CourseDetails = () => {
         </div>
       </div>
 
-      {/* LIST SECTION */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-12">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8 border-l-4 border-pink-500 pl-4">
-            {course.id === 1 ? "Study Patterns" : "Learning Roadmap"}
-        </h2>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {course.chapters && course.chapters.length > 0 ? (
-                course.chapters
-                .filter(c => course.id === 1 || c.roadmap_image_url) // Filter: Agar non-DSA hai to sirf image wale dikhao
-                .map((chapter, index) => (
-                    <div 
-                        key={chapter.id}
-                        onClick={() => handleChapterClick(chapter)}
-                        className={`bg-white p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-pink-500 transition cursor-pointer group flex flex-col items-center text-center
-                            ${course.id !== 1 ? 'py-12' : ''} 
-                        `}
-                    >
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-bold group-hover:bg-gray-900 group-hover:text-white transition mb-4">
-                            {course.id === 1 ? (
-                                <span className="text-xl">{index + 1}</span>
-                            ) : (
-                                <Map size={32} />
-                            )}
-                        </div>
-
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-pink-600 transition">
-                            {chapter.title}
-                        </h3>
-                        
-                        {/* Only for DSA: Description */}
-                        {course.id === 1 && (
-                            <p className="text-sm text-gray-500 line-clamp-2">
-                                {chapter.description || "Master this pattern."}
-                            </p>
-                        )}
-
-                        {/* Only for Roadmaps: Click Hint */}
-                        {course.id !== 1 && (
-                            <span className="mt-4 text-xs font-bold text-pink-500 uppercase tracking-widest border border-pink-100 px-3 py-1 rounded-full">
-                                Tap to View (+1 Coin)
-                            </span>
-                        )}
-                    </div>
-                ))
-            ) : (
-                <div className="text-gray-500">No content added yet.</div>
-            )}
+      {/* 🔥 MAIN CONTENT AREA WITH TABS */}
+      <div className="max-w-7xl mx-auto px-6 md:px-12 -mt-16 pb-12">
+        
+        {/* TABS BUTTONS */}
+        <div className="flex gap-4 mb-8">
+            <button 
+                onClick={() => setActiveTab('curriculum')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold shadow-lg transition transform hover:-translate-y-1 ${
+                    activeTab === 'curriculum' 
+                    ? 'bg-white text-gray-900 border-2 border-white' 
+                    : 'bg-gray-800 text-gray-400 hover:text-white border-2 border-gray-700'
+                }`}
+            >
+                <BookOpen size={20} /> Curriculum
+            </button>
+            <button 
+                onClick={() => setActiveTab('community')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold shadow-lg transition transform hover:-translate-y-1 ${
+                    activeTab === 'community' 
+                    ? 'bg-white text-pink-600 border-2 border-white' 
+                    : 'bg-gray-800 text-gray-400 hover:text-white border-2 border-gray-700'
+                }`}
+            >
+                <MessageCircle size={20} /> Community
+            </button>
         </div>
+
+        {/* TAB CONTENT: CURRICULUM (Existing Grid) */}
+        {activeTab === 'curriculum' && (
+            <div className="animate-in fade-in duration-500">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 pl-2 border-l-4 border-pink-500">
+                    {course.id === 1 ? "Study Patterns" : "Learning Roadmap"}
+                </h2>
+                
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {course.chapters && course.chapters.length > 0 ? (
+                        course.chapters
+                        .filter(c => course.id === 1 || c.roadmap_image_url)
+                        .map((chapter, index) => (
+                            <div 
+                                key={chapter.id}
+                                onClick={() => handleChapterClick(chapter)}
+                                className={`bg-white p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-pink-500 transition cursor-pointer group flex flex-col items-center text-center
+                                    ${course.id !== 1 ? 'py-12' : ''} 
+                                `}
+                            >
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-bold group-hover:bg-gray-900 group-hover:text-white transition mb-4">
+                                    {course.id === 1 ? (
+                                        <span className="text-xl">{index + 1}</span>
+                                    ) : (
+                                        <Map size={32} />
+                                    )}
+                                </div>
+
+                                <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-pink-600 transition">
+                                    {chapter.title}
+                                </h3>
+                                
+                                {course.id === 1 && (
+                                    <p className="text-sm text-gray-500 line-clamp-2">
+                                        {chapter.description || "Master this pattern."}
+                                    </p>
+                                )}
+
+                                {course.id !== 1 && (
+                                    <span className="mt-4 text-xs font-bold text-pink-500 uppercase tracking-widest border border-pink-100 px-3 py-1 rounded-full">
+                                        Tap to View (+1 Coin)
+                                    </span>
+                                )}
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-gray-500">No content added yet.</div>
+                    )}
+                </div>
+            </div>
+        )}
+
+        {/* TAB CONTENT: COMMUNITY (Chat) */}
+        {activeTab === 'community' && (
+            <div className="animate-in fade-in duration-500">
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden min-h-[600px]">
+                    <div className="p-6 bg-pink-50 border-b border-pink-100">
+                        <h2 className="text-xl font-bold text-gray-900">Discuss {course.title}</h2>
+                        <p className="text-sm text-gray-500">Ask doubts, share logic, and help others!</p>
+                    </div>
+                    {/* 🔥 Chat Component Loaded Here */}
+                    <div className="h-[500px] p-4">
+                        <CourseChat socket={socket} roomId={`course_${course.id}`} />
+                    </div>
+                </div>
+            </div>
+        )}
+
       </div>
     </div>
   );
