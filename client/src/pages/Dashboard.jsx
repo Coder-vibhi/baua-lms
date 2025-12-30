@@ -18,7 +18,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
-      fetch(`http://localhost:5000/user-profile/${user.id}`)
+      fetch(`https://baua-lms.onrender.com/user-profile/${user.id}`)
         .then(res => res.json())
         .then(data => {
           setProfile(data);

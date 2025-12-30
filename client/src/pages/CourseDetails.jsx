@@ -17,7 +17,7 @@ const CourseDetails = () => {
   const [showCoinToast, setShowCoinToast] = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/courses/${id}`)
+    fetch(`https://baua-lms.onrender.com/courses/${id}`)
       .then(res => res.json())
       .then(data => {
         setCourse(data);
@@ -48,7 +48,7 @@ const CourseDetails = () => {
             // Coin Logic
             if (user) {
                 try {
-                    const res = await fetch('http://localhost:5000/mark-roadmap-viewed', {
+                    const res = await fetch('https://baua-lms.onrender.com/mark-roadmap-viewed', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId: user.id, chapterId: chapter.id })

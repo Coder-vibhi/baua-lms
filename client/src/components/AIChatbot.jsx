@@ -26,7 +26,7 @@ const AIChatbot = () => {
 
   const checkTrialStatus = async () => {
     try {
-        const res = await fetch(`http://localhost:5000/user-profile/${user.id}`);
+        const res = await fetch(`https://baua-lms.onrender.com/user-profile/${user.id}`);
         const data = await res.json();
         if (!data.ai_trial_start) setDaysLeft(7);
         else {

@@ -16,7 +16,7 @@ const PatternViewer = () => {
 
   useEffect(() => {
     // Videos fetch logic... (Same as before)
-    fetch(`http://localhost:5000/chapters/${chapterId}/videos`)
+    fetch(`https://baua-lms.onrender.com/chapters/${chapterId}/videos`)
       .then(res => res.json())
       .then(data => {
         setVideos(data);
@@ -30,7 +30,7 @@ const PatternViewer = () => {
     if (!user) return alert("Please Login to earn coins!");
     
     // API Call
-    const res = await fetch('http://localhost:5000/mark-complete', {
+    const res = await fetch('https://baua-lms.onrender.com/mark-complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id, videoId: currentVideo.id, chapterId })

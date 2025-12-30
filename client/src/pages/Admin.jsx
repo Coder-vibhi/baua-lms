@@ -23,7 +23,7 @@ const Admin = () => {
   // 1. Check if User is Admin
   useEffect(() => {
     if (user) {
-      fetch(`http://localhost:5000/user-profile/${user.id}`)
+      fetch(`https://baua-lms.onrender.com/user-profile/${user.id}`)
         .then(res => res.json())
         .then(data => {
           if (data.role === 'admin') {
@@ -40,13 +40,13 @@ const Admin = () => {
   }, [user, navigate]);
 
   const fetchCourses = () => {
-    fetch('http://localhost:5000/courses')
+    fetch('https://baua-lms.onrender.com/courses')
       .then(res => res.json())
       .then(data => setCourses(data));
   };
 
   const fetchChapters = (courseId) => {
-    fetch(`http://localhost:5000/courses/${courseId}`)
+    fetch(`https://baua-lms.onrender.com/courses/${courseId}`)
       .then(res => res.json())
       .then(data => setChapters(data.chapters || []));
   };
@@ -54,7 +54,7 @@ const Admin = () => {
   // --- SUBMIT HANDLERS ---
   const handleAddCourse = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:5000/admin/add-course', {
+    const res = await fetch('https://baua-lms.onrender.com/admin/add-course', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(courseData)
@@ -64,7 +64,7 @@ const Admin = () => {
 
   const handleAddChapter = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:5000/admin/add-chapter', {
+    const res = await fetch('https://baua-lms.onrender.com/admin/add-chapter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(chapterData)
@@ -74,7 +74,7 @@ const Admin = () => {
 
   const handleAddVideo = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:5000/admin/add-video', {
+    const res = await fetch('https://baua-lms.onrender.com/admin/add-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(videoData)

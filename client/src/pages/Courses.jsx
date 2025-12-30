@@ -12,7 +12,7 @@ const Courses = () => {
   const courseHeroImg = "https://cdni.iconscout.com/illustration/premium/thumb/online-education-4328822-3599965.png";
 
   useEffect(() => {
-    fetch('http://localhost:5000/courses')
+    fetch('https://baua-lms.onrender.com/courses')
       .then(res => res.json())
       .then(data => {
         setCourses(data);
