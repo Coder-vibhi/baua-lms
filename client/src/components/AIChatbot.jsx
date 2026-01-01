@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, X, Bot, Sparkles, Clock, Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import ReactMarkdown from 'react-markdown'; // 🔥 IMPORT KIYA
+import ReactMarkdown from 'react-markdown'; 
 
 const AIChatbot = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   
+  // 👋 Message thoda aur friendly kar diya
   const [messages, setMessages] = useState([
-    { text: "Hello! I am **Baua AI**. Ask me to write *DSA code*, explain System Design, or take your mock interview! 🤖", sender: 'bot' }
+    { text: "Yo! I'm **Baua AI**. DSA doubt ho ya Debugging, seedha pucho! 🚀", sender: 'bot' }
   ]);
   
   const [input, setInput] = useState('');
@@ -34,7 +35,7 @@ const AIChatbot = () => {
             if (diffDays > 7) { setIsExpired(true); setDaysLeft(0); }
             else setDaysLeft(7 - diffDays);
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Trial Check Error:", e); }
   };
 
   const scrollToBottom = () => {
@@ -42,25 +43,40 @@ const AIChatbot = () => {
   };
   useEffect(scrollToBottom, [messages]);
 
+  // --- 🔥 UPDATED AI PROMPT (COOLER VERSION) ---
   const fetchGeminiResponse = async (userQuery) => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) return "⚠️ API Key Missing in .env file";
+    if (!apiKey) return "⚠️ System Error: API Key missing.";
 
-    // ✅ Using gemini-2.5-flash
     const modelName = "gemini-2.5-flash"; 
+    
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
+    // 👇 NEW "PRO CODER" INSTRUCTIONS
     const payload = {
       contents: [{
         parts: [{
-          text: `You are 'Baua AI', an expert Coding Mentor. 
-                 Help with DSA, System Design, and Web Dev.
-                 Rules:
-                 1. Format your answer using Markdown (bold, lists, code blocks).
-                 2. If asked for code, use code blocks with language name.
-                 3. Keep explanations clean and spaced out.
+          text: `You are 'Baua AI', a smart, cool, and expert Coding Mentor.
                  
-                 Student Question: ${userQuery}`
+                 YOUR CODING STYLE:
+                 1. **LeetCode/Competitive Style:** Write short, clean, and efficient code.
+                 2. **No Fluff:** Don't write extensive boilerplate (like 'List[int]') unless necessary. Use simple variable names like 'seen', 'map', 'res', 'curr'.
+                 3. **Minimal Comments:** Only comment on the tricky logic. Don't explain obvious lines like "loop through array".
+                 
+                 YOUR TONE:
+                 1. Direct and to the point.
+                 2. Use Markdown formatting.
+                 3. Explain the logic in max 2 bullet points AFTER the code.
+
+                 Example of what user wants (Two Sum):
+                 def twoSum(nums, target):
+                     seen = {}
+                     for i, num in enumerate(nums):
+                         rem = target - num
+                         if rem in seen: return [seen[rem], i]
+                         seen[num] = i
+                 
+                 Now answer this Student Question: ${userQuery}`
         }]
       }]
     };
@@ -71,10 +87,15 @@ const AIChatbot = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+      
       const data = await response.json();
-      if (data.error) return "⚠️ AI Error: " + data.error.message;
-      if (data.candidates && data.candidates[0].content) return data.candidates[0].content.parts[0].text;
+      
+      if (data.error) return `⚠️ AI Error: ${data.error.message}`;
+      if (data.candidates && data.candidates[0].content) {
+          return data.candidates[0].content.parts[0].text;
+      }
       return "Thinking...";
+
     } catch (error) {
       return "Oops! Internet connection error.";
     }
@@ -130,13 +151,9 @@ const AIChatbot = () => {
                         {messages.map((msg, index) => (
                             <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] p-3 rounded-2xl text-xs md:text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-gray-900 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'}`}>
-                                    
-                                    {/* 🔥 MARKDOWN RENDERER START */}
                                     <ReactMarkdown
                                         components={{
-                                            // Bold text styling
                                             strong: ({node, ...props}) => <span className="font-bold text-pink-600" {...props} />,
-                                            // Code Blocks styling
                                             code: ({node, inline, className, children, ...props}) => {
                                                 return !inline ? (
                                                     <div className="bg-gray-800 text-gray-100 p-3 rounded-lg my-2 overflow-x-auto font-mono text-xs">
@@ -148,21 +165,16 @@ const AIChatbot = () => {
                                                     </code>
                                                 )
                                             },
-                                            // Lists styling
                                             ul: ({node, ...props}) => <ul className="list-disc ml-4 my-2" {...props} />,
                                             ol: ({node, ...props}) => <ol className="list-decimal ml-4 my-2" {...props} />,
                                             li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                                            // Headings styling
                                             h1: ({node, ...props}) => <h1 className="text-lg font-bold my-2" {...props} />,
                                             h2: ({node, ...props}) => <h2 className="text-base font-bold my-2" {...props} />,
-                                            h3: ({node, ...props}) => <h3 className="text-sm font-bold my-1" {...props} />,
                                             p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
                                         }}
                                     >
                                         {msg.text}
                                     </ReactMarkdown>
-                                    {/* 🔥 MARKDOWN RENDERER END */}
-
                                 </div>
                             </div>
                         ))}
