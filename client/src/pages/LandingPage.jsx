@@ -27,7 +27,7 @@ const LandingPage = () => {
 
         <div className="relative z-0 mt-8 mb-8 text-center md:text-left">
               <h1 className="text-[12vw] md:text-[130px] font-black text-gray-900 leading-none uppercase tracking-tighter select-none opacity-90">
-                BAUA LEARNING
+                BABUA LEARNING
             </h1>
             
             <div className="mt-6 flex flex-col items-center md:items-start animate-in slide-in-from-left duration-700">

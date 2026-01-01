@@ -9,7 +9,7 @@ const AIChatbot = () => {
   
   // 👋 Message thoda aur friendly kar diya
   const [messages, setMessages] = useState([
-    { text: "Yo! I'm **Baua AI**. DSA doubt ho ya Debugging, seedha pucho! 🚀", sender: 'bot' }
+    { text: "Yo! I'm **babua AI**. DSA doubt ho ya Debugging, seedha pucho! 🚀", sender: 'bot' }
   ]);
   
   const [input, setInput] = useState('');
@@ -56,7 +56,7 @@ const AIChatbot = () => {
     const payload = {
       contents: [{
         parts: [{
-          text: `You are 'Baua AI', a smart, cool, and expert Coding Mentor.
+          text: `You are 'babua AI', a smart, cool, and expert Coding Mentor.
                  
                  YOUR CODING STYLE:
                  1. **LeetCode/Competitive Style:** Write short, clean, and efficient code.
@@ -132,7 +132,7 @@ const AIChatbot = () => {
                 <div className="flex items-center gap-3">
                     <div className="bg-pink-600 p-2 rounded-lg"><Sparkles size={18} className="text-white" /></div>
                     <div>
-                        <h3 className="font-bold text-sm">Baua AI Mentor</h3>
+                        <h3 className="font-bold text-sm">babua AI Mentor</h3>
                         <p className="text-[10px] text-gray-400 flex items-center gap-1"><Clock size={10} /> {isExpired ? "Expired" : `${daysLeft} Days Free Trial`}</p>
                     </div>
                 </div>

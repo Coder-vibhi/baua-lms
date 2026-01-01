@@ -20,7 +20,7 @@ const Contact = () => {
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 text-center">
                     <Mail className="w-6 h-6 mx-auto mb-3 text-gray-900" />
                     <h3 className="text-sm font-bold text-gray-900">Email Us</h3>
-                    <p className="text-xs text-gray-500 mt-1">support@baualearning.com</p>
+                    <p className="text-xs text-gray-500 mt-1">support@babualearning.com</p>
                 </div>
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 text-center">
                     <MessageSquare className="w-6 h-6 mx-auto mb-3 text-gray-900" />
